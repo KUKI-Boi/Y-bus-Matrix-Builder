@@ -1,0 +1,207 @@
+% ybus_interactive.m
+% Interactive Y-bus builder with CLEAR input descriptions
+
+clc; clear;
+
+fprintf("------------------------------------------------------------\n");
+fprintf("                   Y-BUS BUILDER (MATLAB)\n");
+fprintf("------------------------------------------------------------\n\n");
+
+%% ---------------- BUS & BRANCH COUNT ----------------
+nb = input('Enter number of buses: ');
+if isempty(nb) || ~isscalar(nb) || nb <= 0
+    error('Invalid number of buses');
+end
+
+nl = input('Enter number of branches (lines): ');
+if isempty(nl) || ~isscalar(nl) || nl < 1
+    error('Invalid number of branches');
+end
+
+%% ---------------- MODE SELECTION ----------------
+fprintf("\n------------------------------------------------------------\n");
+fprintf("INPUT MODE SELECTION\n");
+fprintf("------------------------------------------------------------\n");
+fprintf("You may enter data in terms of:\n");
+fprintf("  (1) *Impedance* (R, X)   → program converts to admittance\n");
+fprintf("  (2) *Admittance* (G, B) → you directly enter Y = G + jB\n\n");
+
+fprintf("Impedance mode examples:\n");
+fprintf("  Full format : [from  to  R  X  B_total]\n");
+fprintf("  Short form  : [from  to  X]    (R = 0,  B_total = 0)\n\n");
+
+fprintf("Admittance mode examples:\n");
+fprintf("  Full format : [from  to  G  B_series  B_total]\n");
+fprintf("  Short form  : [from  to  G]    (B_series = 0, B_total = 0)\n\n");
+
+mode = input('Enter mode (1 = Impedance, 2 = Admittance): ');
+if ~(mode==1 || mode==2)
+    error('Invalid mode selected.');
+end
+
+fprintf("\n------------------------------------------------------------\n");
+fprintf("ENTER BRANCH DATA\n");
+fprintf("------------------------------------------------------------\n");
+fprintf("Enter EACH branch as a MATLAB vector, e.g. [1 2 0.02 0.4 0.1]\n");
+fprintf("Be sure the FIRST TWO NUMBERS are (from_bus, to_bus).\n");
+fprintf("You will be able to *edit* your inputs later.\n\n");
+
+%% ---------- STORAGE ----------
+branches = struct('fb',{},'tb',{},'yre',{},'yim',{},'Btot',{});
+
+%% ---------- FUNCTION TO PARSE A BRANCH ----------
+function [ok, fb, tb, yre, yim, Btot] = parseBranch(v, mode, nb)
+    ok = false;
+    fb = 0; tb = 0; yre = 0; yim = 0; Btot = 0;
+
+    if ~isnumeric(v), return; end
+
+    % IMPEDANCE MODE
+    if mode == 1
+        if numel(v)==5
+            fb=v(1); tb=v(2); R=v(3); X=v(4); Btot=v(5);
+            den = R*R + X*X;
+            if den==0, return; end
+            yre = R/den;
+            yim = -X/den;
+        elseif numel(v)==3
+            fb=v(1); tb=v(2); X=v(3);
+            if X==0, return; end
+            yre = 0;
+            yim = -1/X;
+            Btot = 0;
+        else
+            return;
+        end
+
+    % ADMITTANCE MODE
+    else
+        if numel(v)==5
+            fb=v(1); tb=v(2); yre=v(3); yim=v(4); Btot=v(5);
+        elseif numel(v)==3
+            fb=v(1); tb=v(2); yre=v(3); yim=0; Btot=0;
+        else
+            return;
+        end
+    end
+
+    if fb<1 || fb>nb || tb<1 || tb>nb, return; end
+    ok = true;
+end
+
+%% ---------- INPUT BRANCHES ----------
+for k = 1:nl
+    while true
+        fprintf("Branch %d → ", k);
+        str = input('', 's');
+        v = sscanf(str, '%f').';
+        [ok, fb, tb, yre, yim, Btot] = parseBranch(v, mode, nb);
+        if ok
+            branches(k).fb = fb;
+            branches(k).tb = tb;
+            branches(k).yre = yre;
+            branches(k).yim = yim;
+            branches(k).Btot = Btot;
+            break;
+        else
+            fprintf("Invalid format. Please follow the instructions above.\n");
+        end
+    end
+end
+
+%% ---------- EDITING LOOP ----------
+while true
+    fprintf("\n------------------------------------------------------------\n");
+    fprintf("REVIEW ENTERED BRANCHES\n");
+    fprintf("------------------------------------------------------------\n");
+    for k = 1:nl
+        fprintf(" %d: from %d → %d   y = %.6f + j%.6f   B_total = %.6f\n", ...
+            k, branches(k).fb, branches(k).tb, ...
+            branches(k).yre, branches(k).yim, branches(k).Btot);
+    end
+
+    ch = input('\nEdit any branch? (1 = yes, 0 = no): ');
+    if isempty(ch) || ch==0, break; end
+
+    idx = input(sprintf('Enter branch number (1-%d): ', nl));
+    if idx<1 || idx>nl
+        fprintf("Invalid branch index.\n");
+        continue;
+    end
+
+    fprintf("\nRe-enter Branch %d: ", idx);
+    v = input('');
+
+    [ok, fb, tb, yre, yim, Btot] = parseBranch(v, mode, nb);
+    if ok
+        branches(idx).fb = fb;
+        branches(idx).tb = tb;
+        branches(idx).yre = yre;
+        branches(idx).yim = yim;
+        branches(idx).Btot = Btot;
+    else
+        fprintf("Invalid entry, no changes made.\n");
+    end
+end
+
+%% ---------- BUILD Y-BUS ----------
+Yre = zeros(nb);
+Yim = zeros(nb);
+
+for k = 1:nl
+    fb = branches(k).fb; tb = branches(k).tb;
+    yre = branches(k).yre; yim = branches(k).yim; Bhalf = branches(k).Btot / 2;
+
+    if fb ~= tb
+        Yre(fb,tb) = Yre(fb,tb) - yre;  Yim(fb,tb) = Yim(fb,tb) - yim;
+        Yre(tb,fb) = Yre(tb,fb) - yre;  Yim(tb,fb) = Yim(tb,fb) - yim;
+
+        Yre(fb,fb) = Yre(fb,fb) + yre;  Yim(fb,fb) = Yim(fb,fb) + yim + Bhalf;
+        Yre(tb,tb) = Yre(tb,tb) + yre;  Yim(tb,tb) = Yim(tb,tb) + yim + Bhalf;
+    else
+        % self-loop
+        Yre(fb,fb) = Yre(fb,fb) + yre;
+        Yim(fb,fb) = Yim(fb,fb) + yim + Bhalf;
+    end
+end
+
+%% ---------- OPTIONAL SHUNTS ----------
+fprintf("\n------------------------------------------------------------\n");
+fprintf("OPTIONAL BUS SHUNT ADMITTANCES (G + jB)\n");
+fprintf("------------------------------------------------------------\n");
+fprintf("Enter as vector: [bus G B]\n\n");
+
+sh = input('Add shunts? (1 = yes, 0 = no): ');
+if sh == 1
+    nsh = input('Enter number of shunts: ');
+    for s = 1:nsh
+        v = input(sprintf('Shunt %d: ', s));
+        if numel(v)~=3
+            error("Shunt must be [bus G B]");
+        end
+        b = v(1); G = v(2); B = v(3);
+        Yre(b,b) = Yre(b,b) + G;
+        Yim(b,b) = Yim(b,b) + B;
+    end
+end
+
+%% ---------- FINAL Y-BUS ----------
+Ybus = Yre + 1i*Yim;
+
+fprintf("\n------------------------------------------------------------\n");
+fprintf("FINAL Y-BUS MATRIX\n");
+fprintf("------------------------------------------------------------\n");
+
+for r = 1:nb
+    for c = 1:nb
+        fprintf('%10.5f %s j%-10.5f   ', ...
+            real(Ybus(r,c)), ...
+            '+'*(imag(Ybus(r,c))>=0) + '-'*(imag(Ybus(r,c))<0), ...
+            abs(imag(Ybus(r,c))));
+    end
+    fprintf('\n');
+end
+
+fprintf("\nCompleted. Press Enter to close.\n");
+pause;
+
