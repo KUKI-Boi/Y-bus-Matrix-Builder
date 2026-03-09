@@ -91,38 +91,6 @@ Assumptions:
 
 ---
 
-## 🖥️ How to Run the Project
-
-### 1️⃣ Download the Repository
-
-Clone the repository:
-
-```bash
-git clone https://github.com/KUKI-Boi/ybus-interactive-builder.git
-```
-
-Or download the ZIP file from GitHub.
-
----
-
-### 2️⃣ Open MATLAB
-
-Open MATLAB and navigate to the folder containing the script.
-
----
-
-### 3️⃣ Run the Program
-
-Execute the MATLAB script:
-
-```matlab
-ybus_interactive
-```
-
-The program will start prompting you for input.
-
----
-
 ## 📥 Program Inputs
 
 The program will ask for the following inputs:
