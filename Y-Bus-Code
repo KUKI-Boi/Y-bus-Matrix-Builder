@@ -1,207 +1,257 @@
-% ybus_interactive.m
-% Interactive Y-bus builder with CLEAR input descriptions
+# ⚡ Interactive Y-Bus Builder (MATLAB)
 
-clc; clear;
+## 📌 Overview
+This project implements an **Interactive Y-Bus Matrix Builder** in **MATLAB** for power system network analysis.
 
-fprintf("------------------------------------------------------------\n");
-fprintf("                   Y-BUS BUILDER (MATLAB)\n");
-fprintf("------------------------------------------------------------\n\n");
+The program allows users to **construct the Bus Admittance Matrix (Y-Bus)** by entering transmission line data interactively. It supports multiple input formats including **impedance (R, X)** and **admittance (G, B)** and automatically converts values when required.
 
-%% ---------------- BUS & BRANCH COUNT ----------------
-nb = input('Enter number of buses: ');
-if isempty(nb) || ~isscalar(nb) || nb <= 0
-    error('Invalid number of buses');
-end
+The script also allows users to:
+- Review and edit branch data before computation
+- Include line charging susceptance
+- Add optional shunt admittances at buses
 
-nl = input('Enter number of branches (lines): ');
-if isempty(nl) || ~isscalar(nl) || nl < 1
-    error('Invalid number of branches');
-end
+The **Y-Bus matrix** is widely used in **load flow analysis, fault analysis, and power system stability studies**.
 
-%% ---------------- MODE SELECTION ----------------
-fprintf("\n------------------------------------------------------------\n");
-fprintf("INPUT MODE SELECTION\n");
-fprintf("------------------------------------------------------------\n");
-fprintf("You may enter data in terms of:\n");
-fprintf("  (1) *Impedance* (R, X)   → program converts to admittance\n");
-fprintf("  (2) *Admittance* (G, B) → you directly enter Y = G + jB\n\n");
+---
 
-fprintf("Impedance mode examples:\n");
-fprintf("  Full format : [from  to  R  X  B_total]\n");
-fprintf("  Short form  : [from  to  X]    (R = 0,  B_total = 0)\n\n");
+## 🚀 Features
 
-fprintf("Admittance mode examples:\n");
-fprintf("  Full format : [from  to  G  B_series  B_total]\n");
-fprintf("  Short form  : [from  to  G]    (B_series = 0, B_total = 0)\n\n");
+✔ Interactive MATLAB interface for building Y-Bus  
+✔ Supports **two input modes**:
+- Impedance mode (R, X)
+- Admittance mode (G, B)
 
-mode = input('Enter mode (1 = Impedance, 2 = Admittance): ');
-if ~(mode==1 || mode==2)
-    error('Invalid mode selected.');
-end
+✔ Automatic conversion from **impedance to admittance**  
+✔ Supports **full and short data formats**  
+✔ Allows **editing branch inputs before final calculation**  
+✔ Supports **optional shunt admittances at buses**  
+✔ Displays the **final Y-Bus matrix clearly formatted**
 
-fprintf("\n------------------------------------------------------------\n");
-fprintf("ENTER BRANCH DATA\n");
-fprintf("------------------------------------------------------------\n");
-fprintf("Enter EACH branch as a MATLAB vector, e.g. [1 2 0.02 0.4 0.1]\n");
-fprintf("Be sure the FIRST TWO NUMBERS are (from_bus, to_bus).\n");
-fprintf("You will be able to *edit* your inputs later.\n\n");
+---
 
-%% ---------- STORAGE ----------
-branches = struct('fb',{},'tb',{},'yre',{},'yim',{},'Btot',{});
+## ⚙️ Input Modes
 
-%% ---------- FUNCTION TO PARSE A BRANCH ----------
-function [ok, fb, tb, yre, yim, Btot] = parseBranch(v, mode, nb)
-    ok = false;
-    fb = 0; tb = 0; yre = 0; yim = 0; Btot = 0;
+The program provides two modes for entering line parameters.
 
-    if ~isnumeric(v), return; end
+### 1️⃣ Impedance Mode
+Users provide **resistance and reactance**, and the program converts them to admittance.
 
-    % IMPEDANCE MODE
-    if mode == 1
-        if numel(v)==5
-            fb=v(1); tb=v(2); R=v(3); X=v(4); Btot=v(5);
-            den = R*R + X*X;
-            if den==0, return; end
-            yre = R/den;
-            yim = -X/den;
-        elseif numel(v)==3
-            fb=v(1); tb=v(2); X=v(3);
-            if X==0, return; end
-            yre = 0;
-            yim = -1/X;
-            Btot = 0;
-        else
-            return;
-        end
+#### Full Format
+```
+[from_bus  to_bus  R  X  B_total]
+```
 
-    % ADMITTANCE MODE
-    else
-        if numel(v)==5
-            fb=v(1); tb=v(2); yre=v(3); yim=v(4); Btot=v(5);
-        elseif numel(v)==3
-            fb=v(1); tb=v(2); yre=v(3); yim=0; Btot=0;
-        else
-            return;
-        end
-    end
+Example:
+```
+[1 2 0.02 0.4 0.1]
+```
 
-    if fb<1 || fb>nb || tb<1 || tb>nb, return; end
-    ok = true;
-end
+#### Short Format
+```
+[from_bus  to_bus  X]
+```
 
-%% ---------- INPUT BRANCHES ----------
-for k = 1:nl
-    while true
-        fprintf("Branch %d → ", k);
-        str = input('', 's');
-        v = sscanf(str, '%f').';
-        [ok, fb, tb, yre, yim, Btot] = parseBranch(v, mode, nb);
-        if ok
-            branches(k).fb = fb;
-            branches(k).tb = tb;
-            branches(k).yre = yre;
-            branches(k).yim = yim;
-            branches(k).Btot = Btot;
-            break;
-        else
-            fprintf("Invalid format. Please follow the instructions above.\n");
-        end
-    end
-end
+Example:
+```
+[1 2 0.4]
+```
 
-%% ---------- EDITING LOOP ----------
-while true
-    fprintf("\n------------------------------------------------------------\n");
-    fprintf("REVIEW ENTERED BRANCHES\n");
-    fprintf("------------------------------------------------------------\n");
-    for k = 1:nl
-        fprintf(" %d: from %d → %d   y = %.6f + j%.6f   B_total = %.6f\n", ...
-            k, branches(k).fb, branches(k).tb, ...
-            branches(k).yre, branches(k).yim, branches(k).Btot);
-    end
+Assumptions:
+- R = 0
+- B_total = 0
 
-    ch = input('\nEdit any branch? (1 = yes, 0 = no): ');
-    if isempty(ch) || ch==0, break; end
+---
 
-    idx = input(sprintf('Enter branch number (1-%d): ', nl));
-    if idx<1 || idx>nl
-        fprintf("Invalid branch index.\n");
-        continue;
-    end
+### 2️⃣ Admittance Mode
+Users directly enter the **admittance values**.
 
-    fprintf("\nRe-enter Branch %d: ", idx);
-    v = input('');
+#### Full Format
+```
+[from_bus  to_bus  G  B_series  B_total]
+```
 
-    [ok, fb, tb, yre, yim, Btot] = parseBranch(v, mode, nb);
-    if ok
-        branches(idx).fb = fb;
-        branches(idx).tb = tb;
-        branches(idx).yre = yre;
-        branches(idx).yim = yim;
-        branches(idx).Btot = Btot;
-    else
-        fprintf("Invalid entry, no changes made.\n");
-    end
-end
+Example:
+```
+[1 2 0.5 -2.0 0.1]
+```
 
-%% ---------- BUILD Y-BUS ----------
-Yre = zeros(nb);
-Yim = zeros(nb);
+#### Short Format
+```
+[from_bus  to_bus  G]
+```
 
-for k = 1:nl
-    fb = branches(k).fb; tb = branches(k).tb;
-    yre = branches(k).yre; yim = branches(k).yim; Bhalf = branches(k).Btot / 2;
+Example:
+```
+[1 2 0.5]
+```
 
-    if fb ~= tb
-        Yre(fb,tb) = Yre(fb,tb) - yre;  Yim(fb,tb) = Yim(fb,tb) - yim;
-        Yre(tb,fb) = Yre(tb,fb) - yre;  Yim(tb,fb) = Yim(tb,fb) - yim;
+Assumptions:
+- B_series = 0
+- B_total = 0
 
-        Yre(fb,fb) = Yre(fb,fb) + yre;  Yim(fb,fb) = Yim(fb,fb) + yim + Bhalf;
-        Yre(tb,tb) = Yre(tb,tb) + yre;  Yim(tb,tb) = Yim(tb,tb) + yim + Bhalf;
-    else
-        % self-loop
-        Yre(fb,fb) = Yre(fb,fb) + yre;
-        Yim(fb,fb) = Yim(fb,fb) + yim + Bhalf;
-    end
-end
+---
 
-%% ---------- OPTIONAL SHUNTS ----------
-fprintf("\n------------------------------------------------------------\n");
-fprintf("OPTIONAL BUS SHUNT ADMITTANCES (G + jB)\n");
-fprintf("------------------------------------------------------------\n");
-fprintf("Enter as vector: [bus G B]\n\n");
+## 🖥️ How to Run the Project
 
-sh = input('Add shunts? (1 = yes, 0 = no): ');
-if sh == 1
-    nsh = input('Enter number of shunts: ');
-    for s = 1:nsh
-        v = input(sprintf('Shunt %d: ', s));
-        if numel(v)~=3
-            error("Shunt must be [bus G B]");
-        end
-        b = v(1); G = v(2); B = v(3);
-        Yre(b,b) = Yre(b,b) + G;
-        Yim(b,b) = Yim(b,b) + B;
-    end
-end
+### 1️⃣ Download the Repository
 
-%% ---------- FINAL Y-BUS ----------
-Ybus = Yre + 1i*Yim;
+Clone the repository:
 
-fprintf("\n------------------------------------------------------------\n");
-fprintf("FINAL Y-BUS MATRIX\n");
-fprintf("------------------------------------------------------------\n");
+```bash
+git clone https://github.com/KUKI-Boi/ybus-interactive-builder.git
+```
 
-for r = 1:nb
-    for c = 1:nb
-        fprintf('%10.5f %s j%-10.5f   ', ...
-            real(Ybus(r,c)), ...
-            '+'*(imag(Ybus(r,c))>=0) + '-'*(imag(Ybus(r,c))<0), ...
-            abs(imag(Ybus(r,c))));
-    end
-    fprintf('\n');
-end
+Or download the ZIP file from GitHub.
 
-fprintf("\nCompleted. Press Enter to close.\n");
-pause;
+---
 
+### 2️⃣ Open MATLAB
+
+Open MATLAB and navigate to the folder containing the script.
+
+---
+
+### 3️⃣ Run the Program
+
+Execute the MATLAB script:
+
+```matlab
+ybus_interactive
+```
+
+The program will start prompting you for input.
+
+---
+
+## 📥 Program Inputs
+
+The program will ask for the following inputs:
+
+### Number of Buses
+```
+Enter number of buses
+```
+
+### Number of Branches
+```
+Enter number of branches (lines)
+```
+
+### Input Mode
+```
+1 → Impedance Mode
+2 → Admittance Mode
+```
+
+### Branch Data
+Each branch is entered as a MATLAB vector:
+
+Example:
+```
+[1 2 0.02 0.4 0.1]
+```
+
+Where:
+
+| Parameter | Description |
+|----------|-------------|
+| from_bus | Starting bus |
+| to_bus | Ending bus |
+| R | Resistance |
+| X | Reactance |
+| B_total | Line charging susceptance |
+
+---
+
+## ✏️ Editing Branch Inputs
+
+After entering all branches, the program shows a **summary of the branch data**.
+
+Users can:
+- Review entered values
+- Edit any branch
+- Re-enter data before building the Y-Bus matrix
+
+---
+
+## ➕ Optional Shunt Admittances
+
+Users may add shunt admittances to buses.
+
+Format:
+```
+[bus  G  B]
+```
+
+Example:
+```
+[3 0.0 0.25]
+```
+
+Where:
+
+| Parameter | Description |
+|----------|-------------|
+| bus | Bus number |
+| G | Conductance |
+| B | Susceptance |
+
+---
+
+## 📊 Example Output
+
+The program prints the **final Y-Bus matrix** in complex form.
+
+Example:
+
+```
+FINAL Y-BUS MATRIX
+
+  0.50000 + j-2.50000    -0.50000 + j2.00000
+ -0.50000 + j2.00000      0.50000 + j-2.50000
+```
+
+---
+
+## 📂 Repository Structure
+
+```
+ybus-interactive-builder
+│
+├── ybus_interactive.m
+└── README.md
+```
+
+---
+
+## 🎯 Applications
+
+🔹 Power system load flow analysis  
+🔹 Network modeling  
+🔹 Fault analysis studies  
+🔹 Electrical power system simulation  
+🔹 Engineering education and research
+
+---
+
+## 🛠️ Technologies Used
+
+- MATLAB
+- Power System Analysis
+- Matrix Computation
+
+---
+
+## 👨‍💻 Author
+
+**Likith Kumar**
+
+Electrical and Electronics Engineering  
+CHRIST (Deemed to be University)
+
+GitHub  
+https://github.com/KUKI-Boi
+
+---
+
+⭐ If you find this project useful, feel free to **star the repository**.
