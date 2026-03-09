@@ -1,108 +1,250 @@
-# 🔌 Y-Bus Matrix Builder (MATLAB)
+# ⚡ Interactive Y-Bus Builder (MATLAB)
 
-An interactive MATLAB program to construct the **Bus Admittance Matrix (Y-Bus)** for power system networks.
+## 📌 Overview
+This project implements an **Interactive Y-Bus Matrix Builder** in **MATLAB** for power system network analysis.
 
-This tool allows users to input transmission line data in either **Impedance (R, X)** or **Admittance (G, B)** format and automatically generates the Y-Bus matrix with optional shunt admittances.
+The program allows users to **construct the Bus Admittance Matrix (Y-Bus)** by entering transmission line data interactively. It supports multiple input formats including **impedance (R, X)** and **admittance (G, B)** and automatically converts values when required.
+
+The script also allows users to:
+- Review and edit branch data before computation
+- Include line charging susceptance
+- Add optional shunt admittances at buses
+
+The **Y-Bus matrix** is widely used in **load flow analysis, fault analysis, and power system stability studies**.
 
 ---
 
 ## 🚀 Features
 
-- 🔄 **Dual Input Modes**
-  - **Impedance Mode (R, X)** → Automatically converts to admittance
-  - **Admittance Mode (G + jB)** → Direct input
+✔ Interactive MATLAB interface for building Y-Bus  
+✔ Supports **two input modes**:
+- Impedance mode (R, X)
+- Admittance mode (G, B)
 
-- 🧮 **Automatic Y-Bus Formation**
-  - Correct off-diagonal updates
-  - Proper diagonal accumulation
-  - Line charging susceptance handled (B/2 model)
-  - Self-loop support
-
-- ✏️ **Interactive Editing**
-  - Review and modify branch data before matrix generation
-
-- ⚡ **Optional Bus Shunt Admittances**
-  - Add shunt elements directly to diagonal entries
-
-- 📊 **Formatted Complex Output**
-  - Displays Y-Bus matrix in standard complex form
+✔ Automatic conversion from **impedance to admittance**  
+✔ Supports **full and short data formats**  
+✔ Allows **editing branch inputs before final calculation**  
+✔ Supports **optional shunt admittances at buses**  
+✔ Displays the **final Y-Bus matrix clearly formatted**
 
 ---
 
-## 🧠 Mathematical Background
+## ⚙️ Input Modes
 
-For a transmission line:
+The program provides two modes for entering line parameters.
 
-Z = R + jX  
+### 1️⃣ Impedance Mode
+Users provide **resistance and reactance**, and the program converts them to admittance.
 
-Admittance:
+#### Full Format
+```
+[from_bus  to_bus  R  X  B_total]
+```
 
-Y = 1 / Z = (R - jX) / (R² + X²)
+Example:
+```
+[1 2 0.02 0.4 0.1]
+```
 
-### Y-Bus Formation Rules
+#### Short Format
+```
+[from_bus  to_bus  X]
+```
 
-- Off-diagonal elements:
+Example:
+```
+[1 2 0.4]
+```
 
-  Yᵢⱼ = -Y_line
-
-- Diagonal elements:
-
-  Yᵢᵢ = Sum of connected admittances + Shunt admittance
-
-- Line charging susceptance is divided equally:
-
-  B/2 added to each connected bus
-
----
-
-## 📂 Program Workflow
-
-1. Enter number of buses
-2. Enter number of branches
-3. Select input mode (Impedance / Admittance)
-4. Enter branch data
-5. Review and edit entries (optional)
-6. Add shunt admittances (optional)
-7. Generate and display final Y-Bus matrix
+Assumptions:
+- R = 0
+- B_total = 0
 
 ---
 
-The program converts impedances into admittances and constructs the complete Y-Bus matrix.
+### 2️⃣ Admittance Mode
+Users directly enter the **admittance values**.
+
+#### Full Format
+```
+[from_bus  to_bus  G  B_series  B_total]
+```
+
+Example:
+```
+[1 2 0.5 -2.0 0.1]
+```
+
+#### Short Format
+```
+[from_bus  to_bus  G]
+```
+
+Example:
+```
+[1 2 0.5]
+```
+
+Assumptions:
+- B_series = 0
+- B_total = 0
 
 ---
 
-## 🎓 Applications
+## 🖥️ How to Run the Project
 
-- Power Flow (Load Flow) Analysis
-- Fault Analysis
-- Power System Studies
-- Academic Laboratory Experiments
-- Teaching & Research Simulations
+### 1️⃣ Download the Repository
 
----
+Clone the repository:
 
-## 📌 Requirements
+```bash
+git clone https://github.com/KUKI-Boi/ybus-interactive-builder.git
+```
 
-- MATLAB (R2016b or later recommended)
-- No additional toolboxes required
+Or download the ZIP file from GitHub.
 
 ---
 
-## 📈 Why Use This Tool?
+### 2️⃣ Open MATLAB
 
-✔ Reduces manual calculation errors  
-✔ Saves time for large systems  
-✔ Easy to modify and extend  
-✔ Ideal for students and researchers  
+Open MATLAB and navigate to the folder containing the script.
+
+---
+
+### 3️⃣ Run the Program
+
+Execute the MATLAB script:
+
+```matlab
+ybus_interactive
+```
+
+The program will start prompting you for input.
+
+---
+
+## 📥 Program Inputs
+
+The program will ask for the following inputs:
+
+### Number of Buses
+```
+Enter number of buses
+```
+
+### Number of Branches
+```
+Enter number of branches (lines)
+```
+
+### Input Mode
+```
+1 → Impedance Mode
+2 → Admittance Mode
+```
+
+### Branch Data
+Each branch is entered as a MATLAB vector:
+
+Example:
+```
+[1 2 0.02 0.4 0.1]
+```
+
+Where:
+
+| Parameter | Description |
+|----------|-------------|
+| from_bus | Starting bus |
+| to_bus | Ending bus |
+| R | Resistance |
+| X | Reactance |
+| B_total | Line charging susceptance |
+
+---
+
+## ✏️ Editing Branch Inputs
+
+After entering all branches, the program shows a **summary of the branch data**.
+
+Users can:
+- Review entered values
+- Edit any branch
+- Re-enter data before building the Y-Bus matrix
+
+---
+
+## ➕ Optional Shunt Admittances
+
+Users may add shunt admittances to buses.
+
+Format:
+```
+[bus  G  B]
+```
+
+Example:
+```
+[3 0.0 0.25]
+```
+
+Where:
+
+| Parameter | Description |
+|----------|-------------|
+| bus | Bus number |
+| G | Conductance |
+| B | Susceptance |
+
+---
+
+## 📊 Example Output
+
+The program prints the **final Y-Bus matrix** in complex form.
+
+Example:
+
+```
+FINAL Y-BUS MATRIX
+
+  0.50000 + j-2.50000    -0.50000 + j2.00000
+ -0.50000 + j2.00000      0.50000 + j-2.50000
+```
+
+---
+
+## 📂 Repository Structure
+
+```
+ybus-interactive-builder
+│
+├── ybus_interactive.m
+└── README.md
+```
+
+---
+
+## 🎯 Applications
+
+🔹 Power system load flow analysis  
+🔹 Network modeling  
+🔹 Fault analysis studies  
+🔹 Electrical power system simulation  
+🔹 Engineering education and research
+
+---
+
+## 🛠️ Technologies Used
+
+- MATLAB
+- Power System Analysis
+- Matrix Computation
 
 ---
 
 ## 👨‍💻 Author
 
-Developed for academic and power system analysis purposes.
+**Likith Kumar**
 
----
-
-## 📜 License
-
-This project is open-source and free to use for educational purposes.
+Electrical and Electronics Engineering  
+CHRIST (Deemed to be University)
